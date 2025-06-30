@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Rezerwacja miejsc w kinie</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 20px;
+    }
+
+    .seat {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      background-color: #ccc;
+      border: 1px solid #888;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .seat.selected {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    .seat.taken {
+      background-color: #999;
+      cursor: not-allowed;
+    }
+
+    .legend {
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      padding: 8px;
+      font-size: 16px;
+      margin: 5px;
+    }
+
+    .summary {
+      margin-top: 30px;
+      font-weight: bold;
+    }
+
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border: 1px solid #999;
+      padding: 8px 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Wybierz miejsce w kinie (Rząd 1)</h2>
+
+  <div class="row" id="seatsRow"></div>
+
+  <div class="legend">
+    <span style="display: inline-block; width: 20px; height: 20px; background-color: #ccc; border: 1px solid #888;"></span> wolne
+    <span style="display: inline-block; width: 20px; height: 20px; background-color: #4caf50; border: 1px solid #888; margin-left: 10px;"></span> wybrane
+    <span style="display: inline-block; width: 20px; height: 20px; background-color: #999; border: 1px solid #888; margin-left: 10px;"></span> zajęte
+  </div>
+
+  <div>
+    <input type="text" id="username" placeholder="Imię i nazwisko">
+    <button onclick="submitSelection()">Zatwierdź</button>
+  </div>
+
+  <div style="margin-top: 10px;">
+    <input type="password" id="adminPassword" placeholder="Hasło administratora">
+    <button onclick="checkAdminPassword()">Reset</button>
+  </div>
+
+  <div class="summary" id="summary"></div>
+
+  <h3>Lista rezerwacji:</h3>
+  <table id="reservationTable">
+    <thead>
+      <tr><th>Osoba</th><th>Miejsca</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const row = document.getElementById('seatsRow');
+    const tableBody = document.querySelector('#reservationTable tbody');
+
+    function createSeats() {
+      row.innerHTML = '';
+      for (let i = 1; i <= 24; i++) {
+        const seat = document.createElement('div');
+        seat.classList.add('seat');
+        seat.dataset.number = i;
+        seat.innerText = i;
+        seat.onclick = () => {
+          if (seat.classList.contains('taken')) return;
+          seat.classList.toggle('selected');
+        };
+        row.appendChild(seat);
+      }
+    }
+
+    createSeats();
+
+    function submitSelection() {
+      const name = document.getElementById('username').value.trim();
+      const selectedSeats = [...document.querySelectorAll('.seat.selected')];
+
+      const summary = document.getElementById('summary');
+      if (!name) {
+        summary.textContent = 'Podaj imię i nazwisko!';
+        summary.style.color = 'red';
+        return;
+      }
+
+      if (selectedSeats.length === 0) {
+        summary.textContent = 'Nie wybrano żadnych miejsc.';
+        summary.style.color = 'red';
+        return;
+      }
+
+      const seatNumbers = selectedSeats.map(seat => seat.dataset.number);
+
+      selectedSeats.forEach(seat => {
+        seat.classList.remove('selected');
+        seat.classList.add('taken');
+        seat.onclick = null;
+      });
+
+      const row = document.createElement('tr');
+      const nameCell = document.createElement('td');
+      const seatsCell = document.createElement('td');
+      nameCell.textContent = name;
+      seatsCell.textContent = seatNumbers.join(', ');
+      row.appendChild(nameCell);
+      row.appendChild(seatsCell);
+      tableBody.appendChild(row);
+
+      summary.innerHTML = `Zarezerwowano miejsca: <strong>${seatNumbers.join(', ')}</strong> dla <strong>${name}</strong>`;
+      summary.style.color = 'black';
+
+      document.getElementById('username').value = '';
+    }
+
+    function checkAdminPassword() {
+      const password = document.getElementById('adminPassword').value.trim();
+      if (password === 'Admin') {
+        resetAll();
+      } else {
+        alert('Niepoprawne hasło administratora!');
+      }
+    }
+
+    function resetAll() {
+      createSeats();
+      tableBody.innerHTML = '';
+      document.getElementById('summary').innerHTML = '';
+      document.getElementById('username').value = '';
+      document.getElementById('adminPassword').value = '';
+      alert('Wszystkie dane zostały zresetowane.');
+    }
+  </script>
+
+</body>
+</html>
