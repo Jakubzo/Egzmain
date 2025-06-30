@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rezerwacja miejsc na egzamin</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+      text-align: center;
+    }
+    h1 {
+      margin-top: 20px;
+    }
+    .legend {
+      margin: 10px 0;
+    }
+    .legend span {
+      display: inline-block;
+      margin: 0 10px;
+      padding-left: 20px;
+      background-repeat: no-repeat;
+      background-position: left center;
+    }
+    .legend .free { background-color: #ccc; padding: 5px; }
+    .legend .selected { background-color: #4caf50; padding: 5px; color: white; }
+    .legend .taken { background-color: #f44336; padding: 5px; color: white; }
+    #seatRow {
+      margin-top: 20px;
+    }
+    #seatRow div {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      line-height: 40px;
+      margin: 5px;
+      background-color: #ccc;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #seatRow .selected {
+      background-color: #4caf50;
+    }
+    #seatRow .taken {
+      background-color: #f44336;
+      cursor: not-allowed;
+    }
+    input, button {
+      margin: 10px;
+      padding: 10px;
+      font-size: 16px;
+    }
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #999;
+      padding: 5px 10px;
+    }
+    .delete-btn {
+      color: red;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Rezerwacja miejsc na egzamin</h1>
+  <div class="legend">
+    <span class="free">wolne</span>
+    <span class="selected">wybrane</span>
+    <span class="taken">zajęte</span>
+  </div>
+
+  <div id="seatRow"></div>
+
+  <div>
+    <input type="text" id="username" placeholder="Imię i nazwisko" />
+    <button onclick="submitReservation()">Zatwierdź</button>
+  </div>
+  <div>
+    <input type="password" id="adminPass" placeholder="Hasło administratora" />
+    <button onclick="resetData()">Reset</button>
+  </div>
+
+  <h3>Lista rezerwacji:</h3>
+  <table id="reservationTable">
+    <thead>
+      <tr><th>Osoba</th><th>Miejsce</th><th></th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const adminPassword = "admin123";
+    const seats = document.getElementById("seatRow");
+    const tableBody = document.querySelector("#reservationTable tbody");
+    const taken = new Set();
+    const database = {};
+
+    for (let i = 1; i <= 24; i++) {
+      const seat = document.createElement("div");
+      seat.innerText = i;
+      seat.dataset.number = i;
+      seat.onclick = () => {
+        if (seat.classList.contains("taken")) return;
+        document.querySelectorAll("#seatRow .selected").forEach(s => s.classList.remove("selected"));
+        seat.classList.toggle("selected");
+      };
+      seats.appendChild(seat);
+    }
+
+    function renderTable() {
+      tableBody.innerHTML = "";
+      for (const name in database) {
+        const tr = document.createElement("tr");
+        const tdName = document.createElement("td");
+        const tdSeat = document.createElement("td");
+        tdName.innerText = name;
+        tdSeat.innerText = database[name];
+
+        const tdDelete = document.createElement("td");
+        const delBtn = document.createElement("span");
+        delBtn.innerText = "🗑️";
+        delBtn.className = "delete-btn";
+        delBtn.onclick = () => {
+          const pass = document.getElementById("adminPass").value;
+          if (pass !== adminPassword) return alert("Błędne hasło!");
+          document.querySelector(`#seatRow div[data-number='${database[name]}']`).classList.remove("taken");
+          delete database[name];
+          renderTable();
+        };
+        tdDelete.appendChild(delBtn);
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdSeat);
+        tr.appendChild(tdDelete);
+        tableBody.appendChild(tr);
+      }
+    }
+
+    function submitReservation() {
+      const name = document.getElementById("username").value.trim();
+      const selectedSeat = document.querySelector("#seatRow .selected");
+      if (!name || !selectedSeat) return alert("Podaj imię i wybierz miejsce.");
+      const seatNum = selectedSeat.dataset.number;
+      if (Object.values(database).includes(seatNum)) return alert("To miejsce jest już zajęte.");
+      if (database[name]) return alert("Można zarezerwować tylko jedno miejsce.");
+      selectedSeat.classList.remove("selected");
+      selectedSeat.classList.add("taken");
+      database[name] = seatNum;
+      renderTable();
+    }
+
+    function resetData() {
+      const pass = document.getElementById("adminPass").value;
+      if (pass !== adminPassword) return alert("Błędne hasło!");
+      database = {};
+      document.querySelectorAll("#seatRow div").forEach(seat => seat.classList.remove("taken"));
+      renderTable();
+    }
+  </script>
+</body>
+</html>
