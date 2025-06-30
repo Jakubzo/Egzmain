@@ -1,0 +1,199 @@
+
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Rezerwacja miejsc na egzamin</title>
+  <style>
+    body {
+      background: url('bg.png') no-repeat center center fixed;
+      background-size: cover;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #seatRow {
+      margin-bottom: 20px;
+    }
+
+    #seatRow div {
+      display: inline-block;
+      width: 35px;
+      height: 35px;
+      line-height: 35px;
+      background-color: #ccc;
+      margin: 3px;
+      text-align: center;
+      cursor: pointer;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+
+    .selected { background-color: #4CAF50; color: white; }
+    .taken { background-color: #f08080; color: white; }
+
+    .legend {
+      margin-bottom: 10px;
+    }
+
+    .legend span {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      margin: 0 5px;
+      border: 1px solid #aaa;
+    }
+
+    .form-group {
+      margin: 10px 0;
+    }
+
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .reservation-table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      background-color: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      font-size: 16px;
+    }
+
+    .reservation-table td, .reservation-table th {
+      border: 1px solid #ccc;
+      padding: 8px 12px;
+      text-align: center;
+    }
+
+    .reservation-table th {
+      background-color: #f0f0f0;
+    }
+
+    .reservation-table .delete-btn {
+      color: red;
+      cursor: pointer;
+    }
+
+    .reservation-wrapper {
+      max-width: 400px;
+      margin: 0 auto;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h2>Rezerwacja miejsc na egzamin</h2>
+  <div class="legend">
+    <span style="background:#ccc"></span> wolne
+    <span style="background:#4CAF50"></span> wybrane
+    <span style="background:#f08080"></span> zajęte
+  </div>
+  <div id="seatRow"></div>
+  <div class="form-group">
+    <input type="text" id="username" placeholder="Imię i nazwisko">
+    <button onclick="submitReservation()">Zatwierdź</button>
+  </div>
+  <div class="form-group">
+    <input type="password" id="adminPass" placeholder="Hasło administratora">
+    <button onclick="resetData()">Reset</button>
+  </div>
+  <div class="reservation-wrapper">
+    <p><strong>Lista rezerwacji:</strong></p>
+    <table class="reservation-table" id="reservationTable">
+      <thead>
+        <tr><th>Osoba</th><th>Miejsce</th><th></th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDiKmMmTldHyI1WGsZAJ901_iZ7p4f3qwQ",
+      authDomain: "egzamin-fbe39.firebaseapp.com",
+      projectId: "egzamin-fbe39",
+      storageBucket: "egzamin-fbe39.appspot.com",
+      messagingSenderId: "30826189874",
+      appId: "1:30826189874:web:2588c5f2f5f88b9be6d82b",
+      measurementId: "G-YFGJJB50DQ",
+      databaseURL: "https://egzamin-fbe39-default-rtdb.europe-west1.firebasedatabase.app/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const row = document.getElementById("seatRow");
+    for (let i = 1; i <= 24; i++) {
+      const seat = document.createElement("div");
+      seat.innerText = i;
+      seat.dataset.number = i;
+      seat.onclick = () => {
+        if (seat.classList.contains("taken")) return;
+        document.querySelectorAll("#seatRow .selected").forEach(el => el.classList.remove("selected"));
+        seat.classList.add("selected");
+      };
+      row.appendChild(seat);
+    }
+
+    function submitReservation() {
+      const name = document.getElementById("username").value.trim();
+      const seat = document.querySelector("#seatRow .selected");
+      if (!name || !seat) return alert("Wpisz imię i wybierz jedno miejsce.");
+
+      const number = seat.dataset.number;
+      db.ref("seats/" + name).set({ name, seats: [number] });
+      document.getElementById("username").value = "";
+      seat.classList.remove("selected");
+    }
+
+    function resetData() {
+      const pass = document.getElementById("adminPass").value.trim();
+      if (pass !== "Admin") return alert("Błędne hasło.");
+      db.ref("seats").remove();
+    }
+
+    function deleteEntry(key) {
+      const pass = document.getElementById("adminPass").value.trim();
+      if (pass !== "Admin") return alert("Błędne hasło.");
+      db.ref("seats/" + key).remove();
+    }
+
+    db.ref("seats").on("value", snapshot => {
+      const taken = document.querySelectorAll(".taken");
+      taken.forEach(el => el.classList.remove("taken"));
+
+      const table = document.querySelector("#reservationTable tbody");
+      table.innerHTML = "";
+
+      const data = snapshot.val() || {};
+      for (const key in data) {
+        const seats = data[key].seats;
+        seats.forEach(num => {
+          const s = [...document.querySelectorAll("#seatRow div")].find(el => el.dataset.number === num);
+          if (s) s.classList.add("taken");
+        });
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${key}</td><td>${seats.join(", ")}</td><td><span class="delete-btn" onclick="deleteEntry('${key}')">🗑️</span></td>`;
+        table.appendChild(tr);
+      }
+    });
+  </script>
+</body>
+</html>
