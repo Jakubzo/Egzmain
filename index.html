@@ -1,0 +1,187 @@
+
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rezerwacja miejsc na egzamin</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-image: url('bg.png');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 20px;
+    }
+
+    .legend {
+      margin: 20px 0;
+    }
+
+    .legend span {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      margin: 0 5px;
+      vertical-align: middle;
+      border-radius: 4px;
+    }
+
+    .free { background-color: #ccc; }
+    .selected { background-color: #4CAF50; }
+    .taken { background-color: #f44336; }
+
+    .seat {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      margin: 5px;
+      background-color: #ccc;
+      border-radius: 4px;
+      line-height: 30px;
+      cursor: pointer;
+    }
+
+    .seat.taken {
+      background-color: #f44336;
+      pointer-events: none;
+    }
+
+    .seat.selected {
+      background-color: #4CAF50;
+    }
+
+    .admin, .form {
+      margin-top: 20px;
+    }
+
+    input[type="text"] {
+      padding: 5px;
+      width: 200px;
+    }
+
+    button {
+      padding: 6px 12px;
+      margin: 5px;
+      cursor: pointer;
+    }
+
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border: 1px solid #000;
+      padding: 5px 10px;
+    }
+
+    .delete-button {
+      cursor: pointer;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>Rezerwacja miejsc na egzamin</h1>
+  <div class="legend">
+    <span class="free"></span> wolne
+    <span class="selected"></span> wybrane
+    <span class="taken"></span> zajęte
+  </div>
+
+  <div id="seats"></div>
+
+  <div class="form">
+    <input type="text" id="username" placeholder="Imię i nazwisko" />
+    <button onclick="submitReservation()">Zatwierdź</button>
+  </div>
+
+  <div class="admin">
+    <input type="text" id="adminPass" placeholder="Hasło administratora" />
+    <button onclick="resetAll()">Reset</button>
+  </div>
+
+  <h3>Lista rezerwacji:</h3>
+  <table id="reservationTable">
+    <thead>
+      <tr><th>Osoba</th><th>Miejsce</th><th></th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const adminPassword = 'admin123';
+    const reserved = JSON.parse(localStorage.getItem('reserved') || '{}');
+    const seatsDiv = document.getElementById('seats');
+    const totalSeats = 24;
+
+    function renderSeats() {
+      seatsDiv.innerHTML = '';
+      for (let i = 1; i <= totalSeats; i++) {
+        const seat = document.createElement('div');
+        seat.classList.add('seat');
+        seat.textContent = i;
+        seat.dataset.seat = i;
+        if (Object.values(reserved).flat().includes(i)) {
+          seat.classList.add('taken');
+        }
+        seat.onclick = () => {
+          document.querySelectorAll('.seat.selected').forEach(s => s.classList.remove('selected'));
+          seat.classList.add('selected');
+        };
+        seatsDiv.appendChild(seat);
+      }
+    }
+
+    function submitReservation() {
+      const name = document.getElementById('username').value.trim();
+      const selected = document.querySelector('.seat.selected');
+      if (!name || !selected) return alert("Wprowadź dane i wybierz miejsce.");
+
+      const seatNum = parseInt(selected.dataset.seat);
+      reserved[name] = [seatNum];
+      localStorage.setItem('reserved', JSON.stringify(reserved));
+      renderSeats();
+      renderTable();
+      document.getElementById('username').value = '';
+    }
+
+    function resetAll() {
+      const pass = document.getElementById('adminPass').value.trim();
+      if (pass !== adminPassword) return alert("Błędne hasło administratora.");
+      localStorage.clear();
+      location.reload();
+    }
+
+    function renderTable() {
+      const tbody = document.querySelector('#reservationTable tbody');
+      tbody.innerHTML = '';
+      for (const [name, seats] of Object.entries(reserved)) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${name}</td><td>${seats.join(', ')}</td><td><span class="delete-button" onclick="removeSeat('${name}')">🗑️</span></td>`;
+        tbody.appendChild(row);
+      }
+    }
+
+    function removeSeat(name) {
+      const pass = document.getElementById('adminPass').value.trim();
+      if (pass !== adminPassword) return alert("Błędne hasło administratora.");
+      delete reserved[name];
+      localStorage.setItem('reserved', JSON.stringify(reserved));
+      renderSeats();
+      renderTable();
+    }
+
+    renderSeats();
+    renderTable();
+  </script>
+</body>
+</html>
